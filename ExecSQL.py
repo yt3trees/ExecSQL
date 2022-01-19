@@ -14,6 +14,7 @@ import win32gui # pip install pywin32
 import ctypes
 import chardet
 import re
+import textwrap
 
 # 高DPI対応
 import ctypes
@@ -29,7 +30,7 @@ PARAM = scriptPath + "\ExecSQL.config.json"
 print ('PARAM:',PARAM)
 
 ARGV = sys.argv
-ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
 # ARGV.append('C:\\work\\dev\\python\\テスト\\testError.sql') #デバッグ用
 if len(ARGV) <= 1:
     messagebox.showerror('Error!', 'ファイルが指定されていません')
@@ -265,12 +266,8 @@ class Application(tk.Frame):
                     #     i += 1
                     # else:
                     # エラーメッセージ表示 一定の文字数を超えたら改行を入れる
-                    if len(str(e)) > 65:
-                        res = str(e)[:66] + '\n' + str(e)[66:]
-                    elif len(str(e)) > 130:
-                        res = str(e)[:131] + '\n' + str(e)[131:]
-                    else:
-                        res = str(e)
+                    res = textwrap.wrap(str(e), width=65)
+                    res = ('\n'.join(res))
                     tk.Label(self.master, text = res, anchor='w', justify='left', font=self.fontSub, bg=self.bgColor,fg='#a05e5e').grid(row = i, column = 3,  sticky="W")
                     i += 1
                 # finally:
