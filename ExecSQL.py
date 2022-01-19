@@ -30,7 +30,7 @@ PARAM = scriptPath + "\ExecSQL.config.json"
 print ('PARAM:',PARAM)
 
 ARGV = sys.argv
-ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
 # ARGV.append('C:\\work\\dev\\python\\テスト\\testError.sql') #デバッグ用
 if len(ARGV) <= 1:
     messagebox.showerror('Error!', 'ファイルが指定されていません')
