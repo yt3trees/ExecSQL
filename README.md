@@ -1,4 +1,5 @@
 # ExecSQL
+![widget.png](./image/widget.png)
 ## jp
 ExecSQLはsqlファイルをより少ないプロセスで実行することができるツールです。
 
