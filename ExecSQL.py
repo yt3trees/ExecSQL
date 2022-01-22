@@ -241,11 +241,19 @@ class Application(tk.Frame):
                     else:
                         query = b.decode(encode['encoding'])
 
+                    # クエリからGOコマンドを削除する
+                    findGo = re.compile(r'(?!\/\*.*\n*).*^\s*GO\s*$.*(?!\n*.*?\*\/)' # GOのみの行を検索(/* */で囲まれている行は除く)
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    goCheck = [go for go in findGo.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    print ('GOコマンドを', len(goCheck), '個削除しました')
+                    query = re.sub(findGo, '-- GO', query) # GOをコメントアウト
+                    print ('\n-----After replacement query FROM-----\n', query, '\n-----After replacement query TO-----\n', sep = '')
+
                     # query = file.read()
                     # query= 'SELECT * FROM testTable'
                     # file.close()
                     cursor = connect.cursor()
-                    print(query)
                     cursor.execute(query)
                     connect.commit()
                     # rows = cursor.fetchall() #TASK:SELECT対応
