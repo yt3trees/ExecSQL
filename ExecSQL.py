@@ -38,8 +38,6 @@ if len(ARGV) <= 1:
 ARGV.pop(0) # sys.argv[0](自分自身)を配列から除外
 print('ARGV:', ARGV)
 
-# messagebox.showerror('Error!', ARGV)
-
 # .sqlファイル以外が含まれていた場合は終了
 for f in ARGV:
     if os.path.splitext(f)[1] != '.sql':
@@ -153,7 +151,6 @@ class Application(tk.Frame):
         checkWinauth.bind("<Leave>", leave_sc_check) # マウスカーソルが離れたら
 
         # ファイルリスト
-        '''aaa'''
         i:int = 0
         var = []
         variable = []
@@ -161,7 +158,6 @@ class Application(tk.Frame):
             var.insert(i,file)
             variable.insert(i,tk.Label(self.master, text = file, width=51, anchor='w', font=self.fontSub, bg=self.bgColor, fg=self.fgColor))
             variable[i].grid(row = i+4, column = 0, columnspan=3,  sticky="W")
-            # print('aaa',i,file,os.path.dirname(str(var[i-4])),str(variable[i-4].cget('text')))
             i = i + 1
         def callback(event):
             hWnd = win32gui.FindWindow(None,os.path.basename(os.path.dirname(event.widget['text'])))
@@ -240,7 +236,6 @@ class Application(tk.Frame):
                     with open(file, 'rb') as f:
                         b = f.read()
                     encode = chardet.detect(b)
-                    # file  = open(file, 'r', encoding='shift-jis')
                     if encode['encoding'] == 'Windows-1252':
                         query = b.decode('shift-jis')
                     else:
@@ -270,8 +265,6 @@ class Application(tk.Frame):
                     res = ('\n'.join(res))
                     tk.Label(self.master, text = res, anchor='w', justify='left', font=self.fontSub, bg=self.bgColor,fg='#a05e5e').grid(row = i, column = 3,  sticky="W")
                     i += 1
-                # finally:
-                #     cursor.close()
 
             connect.close()
 
@@ -314,7 +307,7 @@ class Application(tk.Frame):
             # 'Database': jDatabase,
             'User': jUser,
             'Password': jPassword,
-            'ColorOnePoint': "#5EA15F",
+            'ColorOnePoint': self.load_json().get('ColorOnePoint'),
             'Theme': self.load_json().get('Theme')
         }
         # jsonファイルに保存
