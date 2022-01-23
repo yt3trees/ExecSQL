@@ -339,152 +339,153 @@ class Application(tk.Frame):
                         n = i
                         n = n - nonSlct
 
-                    # 取得データ整形・格納
-                    result = []
-                    for r in rows:
-                        txt = []
-                        for d in range(len(r)):
-                            # NULLのデータは実行しない
-                            if r[d] is None:
-                                txt.append('')
+                    if len(selectCheck) > 0:
+                        # 取得データ整形・格納
+                        result = []
+                        for r in rows:
+                            txt = []
+                            for d in range(len(r)):
+                                # NULLのデータは実行しない
+                                if r[d] is None:
+                                    txt.append('')
+                                else:
+                                    txt.append(str.strip(r[d]))
+                            result.append(txt)
+                            # result.append((str.strip(r[0]), str.strip(r[1])))
+                        # pprint.pprint( list(rows) )
+                        # print(list(rows))
+                        RESULT.insert(n-4, result)
+                        print('結果:',result)
+
+                        #カラム名取得
+                        columns = []
+                        for column in exe.description:
+                            columns.append(column[0])
+                        COLUMN.insert(n-4, columns)
+                        print('カラム:', columns)
+
+                        def sub_window(rows, columns):
+                            # print('ボタン押下columns',columns)
+                            # print('ボタン押下result',rows)
+                            def save_csv():
+                                dtime =  datetime.date.today().strftime('%Y%m%d')
+                                filename = dtime + '_' + os.path.splitext(os.path.basename(file))[0] + '.csv'
+                                ftype = [('CSV File', '.csv')]
+                                fname = filedialog.asksaveasfilename(initialfile=filename, filetypes=ftype)
+                                if fname:
+                                    with open(fname, 'w', newline='') as f:
+                                        data = []
+                                        data.append(columns)
+                                        for row in rows:
+                                            data.append(row)
+                                        writer = csv.writer(f)
+                                        writer.writerows(data)
+                                    print('保存しました')
+                                    messagebox.showinfo('Complete', '保存しました')
+                                else:
+                                    print('キャンセルしました')
+
+                            sub_win = tk.Toplevel()
+                            sub_win.title('Result')
+                            ww = sub_win.winfo_screenwidth()
+                            wh = sub_win.winfo_screenheight()
+                            style = ttk.Style()
+                            style.configure('Treeview.Heading', font = self.font, foreground=self.fgColor, background=self.bgColor, relief=tk.RAISED)
+                            style.configure('Treeview', font = self.font, rowheight=30, foreground=self.fgColor, background=self.bgColor,fieldbackground=self.bgColor, relief=tk.FLAT)
+                            sub_win.configure(bg=self.bgColor)
+
+                            # データ件数が30件以上の場合、スクロールバーを表示し30件の縦幅にする
+                            if len(rows) >= 30:
+                                rowInt = 30
+                                scrollbar = tk.Scrollbar(sub_win, orient=tk.VERTICAL)
+                                scrollbar.set(0.2,0.3)
+                                # scrollbar.grid(row=0, column=2, sticky=tk.N+tk.S)
+                                scrollbar.place(relheight=1.0,relwidth=0.02,relx=0.98,rely=0.0)
+                                # tree = ttk.Treeview(sub_win, columns=columns, height=30, yscrollcommand=scrollbar.set)
+                                tree = ttk.Treeview(sub_win, columns=columns, height=rowInt, yscrollcommand=scrollbar.set)
+                                scrollbar.config(command=tree.yview)
                             else:
-                                txt.append(str.strip(r[d]))
-                        result.append(txt)
-                        # result.append((str.strip(r[0]), str.strip(r[1])))
-                    # pprint.pprint( list(rows) )
-                    # print(list(rows))
-                    RESULT.insert(n-4, result)
-                    print('結果:',result)
+                                rowInt = len(rows)
+                                tree = ttk.Treeview(sub_win, columns=columns, height=rowInt)
 
-                    #カラム名取得
-                    columns = []
-                    for column in exe.description:
-                        columns.append(column[0])
-                    COLUMN.insert(n-4, columns)
-                    print('カラム:', columns)
+                            # カラム数が10件以上の場合、スクロールバーを表示し10列の幅にする
+                            if len(columns) >= 10:
+                                xscrollbar = tk.Scrollbar(sub_win, orient=tk.HORIZONTAL)
+                                # xscrollbar.grid(row=1, column=0, columnspan=2, sticky=tk.E+tk.W)
+                                xscrollbar.place(relheight=0.07, relwidth=1.0, relx=0.0, rely=0.83)
+                                xscrollbar.config(command=tree.xview)
+                                tree.configure(xscrollcommand=xscrollbar.set)
 
-                    def sub_window(rows, columns):
-                        # print('ボタン押下columns',columns)
-                        # print('ボタン押下result',rows)
-                        def save_csv():
-                            dtime =  datetime.date.today().strftime('%Y%m%d')
-                            filename = dtime + '_' + os.path.splitext(os.path.basename(file))[0] + '.csv'
-                            ftype = [('CSV File', '.csv')]
-                            fname = filedialog.asksaveasfilename(initialfile=filename, filetypes=ftype)
-                            if fname:
-                                with open(fname, 'w', newline='') as f:
-                                    data = []
-                                    data.append(columns)
-                                    for row in rows:
-                                        data.append(row)
-                                    writer = csv.writer(f)
-                                    writer.writerows(data)
-                                print('保存しました')
-                                messagebox.showinfo('Complete', '保存しました')
-                            else:
-                                print('キャンセルしました')
+                            # タグ定義(色設定用)
+                            tree.tag_configure('color', background=self.bgColor , foreground=self.fgColor)
+                            tree.tag_configure('color2', background=self.grayColor , foreground=self.fgColor)
 
-                        sub_win = tk.Toplevel()
-                        sub_win.title('Result')
-                        ww = sub_win.winfo_screenwidth()
-                        wh = sub_win.winfo_screenheight()
-                        style = ttk.Style()
-                        style.configure('Treeview.Heading', font = self.font, foreground=self.fgColor, background=self.bgColor, relief=tk.RAISED)
-                        style.configure('Treeview', font = self.font, rowheight=30, foreground=self.fgColor, background=self.bgColor,fieldbackground=self.bgColor, relief=tk.FLAT)
-                        sub_win.configure(bg=self.bgColor)
+                            # カラム定義
+                            tree.column('#0',width=0, stretch='no')
+                            for c in columns:
+                                tree.column(c, anchor='center')
+                            tree.heading('#0',text='')
+                            for c in columns:
+                                tree.heading(c, text=c,anchor='center', command=lambda c=c: sortby(tree, c, 0))
 
-                        # データ件数が30件以上の場合、スクロールバーを表示し30件の縦幅にする
-                        if len(rows) >= 30:
-                            rowInt = 30
-                            scrollbar = tk.Scrollbar(sub_win, orient=tk.VERTICAL)
-                            scrollbar.set(0.2,0.3)
-                            # scrollbar.grid(row=0, column=2, sticky=tk.N+tk.S)
-                            scrollbar.place(relheight=1.0,relwidth=0.02,relx=0.98,rely=0.0)
-                            # tree = ttk.Treeview(sub_win, columns=columns, height=30, yscrollcommand=scrollbar.set)
-                            tree = ttk.Treeview(sub_win, columns=columns, height=rowInt, yscrollcommand=scrollbar.set)
-                            scrollbar.config(command=tree.yview)
-                        else:
-                            rowInt = len(rows)
-                            tree = ttk.Treeview(sub_win, columns=columns, height=rowInt)
+                            def sortby(tree, col, descending):
+                                l = [(tree.set(k, col), k) for k in tree.get_children('')]
+                                l.sort(reverse=descending)
+                                # アイテムの並び替え
+                                for index, (val, k) in enumerate(l):
+                                    tree.move(k, '', index)
+                                tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
 
-                        # カラム数が10件以上の場合、スクロールバーを表示し10列の幅にする
-                        if len(columns) >= 10:
-                            xscrollbar = tk.Scrollbar(sub_win, orient=tk.HORIZONTAL)
-                            # xscrollbar.grid(row=1, column=0, columnspan=2, sticky=tk.E+tk.W)
-                            xscrollbar.place(relheight=0.07, relwidth=1.0, relx=0.0, rely=0.83)
-                            xscrollbar.config(command=tree.xview)
-                            tree.configure(xscrollcommand=xscrollbar.set)
+                            # レコードの追加
+                            for i in range(len(rows)):
+                                # 1列ごとにセルの背景色を変える
+                                if i % 2 == 0:
+                                    tree.insert('', 'end', values=rows[i], tags='color2')
+                                else:
+                                    tree.insert('', 'end', values=rows[i], tags='color')
 
-                        # タグ定義(色設定用)
-                        tree.tag_configure('color', background=self.bgColor , foreground=self.fgColor)
-                        tree.tag_configure('color2', background=self.grayColor , foreground=self.fgColor)
+                            # tree.grid(row=0, column=0, columnspan=2, sticky='nsew')
+                            tree.place(relheight=1.0,relwidth=0.98,relx=0.0,rely=0.0)
+                            tree.columnconfigure(0, weight=1)
+                            tree.rowconfigure(0, weight=1)
+                            tree.grid_propagate(False)
 
-                        # カラム定義
-                        tree.column('#0',width=0, stretch='no')
-                        for c in columns:
-                            tree.column(c, anchor='center')
-                        tree.heading('#0',text='')
-                        for c in columns:
-                            tree.heading(c, text=c,anchor='center', command=lambda c=c: sortby(tree, c, 0))
+                            bt = tk.Button(sub_win, text='Close', command=sub_win.destroy, width=10, height=1\
+                                            , bg=self.grayColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
+                            # bt.grid(row=2, column=1, sticky='nsew')
+                            bt.place(relheight=0.10,relwidth=0.50,relx=0.5,rely=0.9)
+                            csvButt = tk.Button(sub_win, text='Save as CSV', command=save_csv, width=10, height=1\
+                                            , bg=self.bgColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
+                            # csvButt.grid(row=2, column=0, sticky='nsew')
+                            csvButt.place(relheight=0.10,relwidth=0.50,relx=0.0,rely=0.9)
 
-                        def sortby(tree, col, descending):
-                            l = [(tree.set(k, col), k) for k in tree.get_children('')]
-                            l.sort(reverse=descending)
-                            # アイテムの並び替え
-                            for index, (val, k) in enumerate(l):
-                                tree.move(k, '', index)
-                            tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
-
-                        # レコードの追加
-                        for i in range(len(rows)):
-                            # 1列ごとにセルの背景色を変える
-                            if i % 2 == 0:
-                                tree.insert('', 'end', values=rows[i], tags='color2')
-                            else:
-                                tree.insert('', 'end', values=rows[i], tags='color')
-
-                        # tree.grid(row=0, column=0, columnspan=2, sticky='nsew')
-                        tree.place(relheight=1.0,relwidth=0.98,relx=0.0,rely=0.0)
-                        tree.columnconfigure(0, weight=1)
-                        tree.rowconfigure(0, weight=1)
-                        tree.grid_propagate(False)
-
-                        bt = tk.Button(sub_win, text='Close', command=sub_win.destroy, width=10, height=1\
-                                        , bg=self.grayColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
-                        # bt.grid(row=2, column=1, sticky='nsew')
-                        bt.place(relheight=0.10,relwidth=0.50,relx=0.5,rely=0.9)
-                        csvButt = tk.Button(sub_win, text='Save as CSV', command=save_csv, width=10, height=1\
-                                        , bg=self.bgColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
-                        # csvButt.grid(row=2, column=0, sticky='nsew')
-                        csvButt.place(relheight=0.10,relwidth=0.50,relx=0.0,rely=0.9)
-
-                        sub_win.update_idletasks()
-                        # lw = sub_win.winfo_width()
-                        # lh = sub_win.winfo_height()
-                        lw = 1500
-                        lh = 400
-                        sub_win.geometry(str(lw)+'x'+str(lh)+"+"+str(int(ww/2-lw/2))+"+"+str(int(wh/2.5-lh/2.5))) # 画面中央に表示
+                            sub_win.update_idletasks()
+                            # lw = sub_win.winfo_width()
+                            # lh = sub_win.winfo_height()
+                            lw = 1500
+                            lh = 400
+                            sub_win.geometry(str(lw)+'x'+str(lh)+"+"+str(int(ww/2-lw/2))+"+"+str(int(wh/2.5-lh/2.5))) # 画面中央に表示
 
                     if len(selectCheck) == 0:
                         tk.Label(self.master, text = 'Success', width=10, anchor='w', font=self.fontSub, bg=self.bgColor,fg=self.fgColor)\
                         .grid(row = i, column = 3, padx=5, sticky="W")
-
-                    def callback(event):
-                        d = str(event.widget['text'])[-1:]
-                        print('\n------------テーブル表示ボタン押下------------', event.widget['text'])
-                        sub_window(RESULT[int(d)], COLUMN[int(d)])
-                    def enter_fg(event):
-                        event.widget['fg'] = self.jsonOnePoint
-                    def leave_fg(event):
-                        event.widget['fg'] = self.fgColor
-                    print('処理中行i', n)
-                    variableA = []
-                    variableA.insert(n, tk.Label(self.master, text = 'Show Results     ' + ' ' + str(n-4), padx=8, width=10, anchor='w'\
-                                                    , font=self.fontSub, bg=self.grayColor,fg=self.fgColor, relief='ridge'))
-                    variableA[0].grid(row = i, column = 3,  sticky="w")
-                    variableA[0].bind("<Button-1>", callback)
-                    variableA[0].bind("<Enter>", enter_fg) # マウスカーソルが重なったら
-                    variableA[0].bind("<Leave>", leave_fg) # マウスカーソルが離れたら
+                    else:
+                        def callback(event):
+                            d = str(event.widget['text'])[-1:]
+                            print('\n------------テーブル表示ボタン押下------------', event.widget['text'])
+                            sub_window(RESULT[int(d)], COLUMN[int(d)])
+                        def enter_fg(event):
+                            event.widget['fg'] = self.jsonOnePoint
+                        def leave_fg(event):
+                            event.widget['fg'] = self.fgColor
+                        print('処理中行i', n)
+                        variableA = []
+                        variableA.insert(n, tk.Label(self.master, text = 'Show Results     ' + ' ' + str(n-4), padx=8, width=10, anchor='w'\
+                                                        , font=self.fontSub, bg=self.grayColor,fg=self.fgColor, relief='ridge'))
+                        variableA[0].grid(row = i, column = 3,  sticky="w")
+                        variableA[0].bind("<Button-1>", callback)
+                        variableA[0].bind("<Enter>", enter_fg) # マウスカーソルが重なったら
+                        variableA[0].bind("<Leave>", leave_fg) # マウスカーソルが離れたら
 
                     i += 1
                     cursor.close()
