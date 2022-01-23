@@ -358,7 +358,7 @@ class Application(tk.Frame):
                 elif self.winauth.get() == False:
                     trusted_connection = 'no'
 
-                connect= pyodbc.connect('DRIVER={+' + self.jsonDriver + '}'+
+                connect= pyodbc.connect('DRIVER={' + self.jsonDriver + '}'+
                                         ';SERVER=' + server +
                                         ';DATABASE=' + 'master' + # masterにはログインできる前提
                                         ';uid=' + user +
