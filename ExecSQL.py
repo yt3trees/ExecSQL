@@ -1,12 +1,14 @@
 from logging import disable
 import sys
 import os
+from turtle import width
 import pyodbc
 import pyperclip as pc
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font
 from tkinter import messagebox
+from tkinter import filedialog
 import json
 import pprint
 import subprocess
@@ -15,6 +17,8 @@ import ctypes
 import chardet
 import re
 import textwrap
+import csv
+import datetime
 
 # 高DPI対応
 import ctypes
@@ -30,8 +34,13 @@ PARAM = scriptPath + "\ExecSQL.config.json"
 print ('PARAM:',PARAM)
 
 ARGV = sys.argv
-# ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\testSelect.sql') #デバッグ用
 # ARGV.append('C:\\work\\dev\\python\\テスト\\testError.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\test4.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\testSelect2.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\testSelect3.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\test2.sql') #デバッグ用
+# ARGV.append('C:\\work\\dev\\python\\テスト\\testViewDelCreate.sql') #デバッグ用
 if len(ARGV) <= 1:
     messagebox.showerror('Error!', 'ファイルが指定されていません')
     sys.exit() # 引数がない場合は終了
@@ -63,7 +72,7 @@ class Application(tk.Frame):
             self.fgColor = '#F0EEEC'
             self.grayColor = '#4a4a4c'
         elif jsonValues.get('Theme') == 'light':
-            self.bgColor = '#e0e0e5'
+            self.bgColor = '#e2e2e2'
             self.fgColor = '#373739'
             self.grayColor = '#F0EEEC'
         else:
@@ -124,10 +133,10 @@ class Application(tk.Frame):
         # ボタン定義
         buttExec = tk.Button(self.master, text="Run", width=10, height=2, bg=self.bgColor, fg=self.jsonOnePoint, activebackground=self.grayColor, relief='raised', font=self.font)#5EA15F
         buttExec.bind("<Button-1>", lambda e: self.after(1, self.push_exec_query))
-        buttExec.grid(row=0, column=3, rowspan=2, padx=5, sticky='w')
+        buttExec.grid(row=0, column=3, rowspan=2, sticky='w')
         buttClose = tk.Button(self.master, text="Close", width=10, height=2, font=self.font, bg=self.grayColor, fg=self.fgColor, relief='raised')
         buttClose.bind("<Button-1>", lambda e: master.destroy())
-        buttClose.grid(row=2, column=3, rowspan=2, padx=5, sticky='w')
+        buttClose.grid(row=2, column=3, rowspan=2, sticky='w')
 
         # チェックボックス定義
         self.winauth = tk.BooleanVar()
@@ -157,8 +166,12 @@ class Application(tk.Frame):
         variable = []
         for file in ARGV:
             var.insert(i,file)
+            # if len(file) > 50:
+            #     txtFile = '...\\' + os.path.basename(os.path.dirname(file)) + os.path.basename(file)
+            # else:
+            #     txtFile = file
             variable.insert(i,tk.Label(self.master, text = file, width=51, anchor='w', font=self.fontSub, bg=self.bgColor, fg=self.fgColor))
-            variable[i].grid(row = i+4, column = 0, columnspan=3,  sticky="W")
+            variable[i].grid(row = i+4, column = 0, columnspan=3, sticky="W", padx=5)
             i = i + 1
         def callback(event):
             hWnd = win32gui.FindWindow(None,os.path.basename(os.path.dirname(event.widget['text'])))
@@ -229,9 +242,14 @@ class Application(tk.Frame):
             # ファイルごとにSQLを実行する
             i:int = 4
             errorCount:int = 0
+            RESULT = []
+            COLUMN = []
+            nonSlct = 0
+            n = 0
             for file in ARGV:
                 try:
-                    print('実行対象:', file)
+                    print('************************************************')
+                    print('\n★実行対象:', file)
 
                     # file  = open(file, 'r', encoding=encode['encoding'])
                     with open(file, 'rb') as f:
@@ -249,22 +267,218 @@ class Application(tk.Frame):
                     goCheck = [go for go in findGo.findall(query)] # 正規表現にマッチする文字列をリストに格納
                     print ('GOコマンドを', len(goCheck), '個削除しました')
                     query = re.sub(findGo, '-- GO', query) # GOをコメントアウト
+
+                    findSelect = re.compile(r'(?!\/\*.*\n*).*^\s*SELECT\s*.*(?!\n*.*?\*\/)' # SELECTで始まる行を検索(/* */で囲まれている行は除く)
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    # findCreate = re.compile(r'(?!\/\*.*\n*).*^\s*CREATE\s*.*(?!\n*.*?\*\/)' # CREATEで始まる行を検索(/* */で囲まれている行は除く)
+                    #                     , re.IGNORECASE # 大文字・小文字を区別しない
+                    #                     | re.MULTILINE) # 複数行にマッチさせる
+                    selectCheck = [slct for slct in findSelect.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    # if len(findCreate) > 0:
+                    #     selectCheck = []
+                    print ('SELECTコマンドを', len(selectCheck), '個見つけました。')
+
+                    # クエリからUSEコマンドを削除する ※pyodbcではUSEコマンドを含めるとSELECTできないため
+                    findUse = re.compile(r'(?!\/\*.*\n*).*^\s*USE\s*.*(?!\n*.*?\*\/)' # USEで始まる行を検索(/* */で囲まれている行は除く)
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    useCheck = [use for use in findUse.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    print('ゆーざう', useCheck)
+                    print ('USEコマンドを', len(useCheck), '個削除しました')
+                    # USEが存在する場合は接続先データベースを変更する
+                    if len(useCheck) == 1:
+                        connect.close()
+                        database = useCheck[0].split()[1]
+                        database = database.replace('[', '')
+                        database = database.replace(']', '')
+                        print('USEコマンドが存在するため接続先データベースを', database, 'に変更しました')
+                        connect= pyodbc.connect('DRIVER={'+ self.jsonDriver +'}'+
+                                    ';SERVER=' + server +
+                                    ';DATABASE=' + database +
+                                    ';uid=' + user +
+                                    ';pwd=' + password +
+                                    ';Trusted_Connection=' + trusted_connection) # Windows認証
+                        connect.setencoding('shift-jis')
+                    if len(useCheck) > 1:
+                        msg = 'USEコマンドが複数存在します。1つのみにしてください。\n' + file
+                        messagebox.showerror('Error!', msg)
+                        return
+                    for us in useCheck:
+                        us = '-- ' + us
+                        query = re.sub(findUse, us, query) # USEをコメントアウト
+
                     print ('\n-----After replacement query FROM-----\n', query, '\n-----After replacement query TO-----\n', sep = '')
 
                     # query = file.read()
                     # query= 'SELECT * FROM testTable'
                     # file.close()
                     cursor = connect.cursor()
-                    cursor.execute(query)
-                    connect.commit()
-                    # rows = cursor.fetchall() #TASK:SELECT対応
-                    # pprint.pprint( rows )
-                    # print(rows)
-                    tk.Label(self.master, text = 'Success', width=10, anchor='w', font=self.fontSub, bg=self.bgColor,fg=self.fgColor).grid(row = i, column = 3,  sticky="W")#9fa05e
+                    exe = cursor.execute(query)
+                    if len(selectCheck) > 0:
+                        rows = cursor.fetchall() #TASK:SELECT対応
+                    else:
+                        connect.commit()
+                        nonSlct += 1
+
+                    if len(selectCheck) > 0:
+                        n = i
+                        n = n - nonSlct
+
+                        # 取得データ整形・格納
+                        result = []
+                        for r in rows:
+                            txt = []
+                            for d in range(len(r)):
+                                # NULLのデータは実行しない
+                                if r[d] is None:
+                                    txt.append('')
+                                else:
+                                    txt.append(str.strip(r[d]))
+                            result.append(txt)
+                            # result.append((str.strip(r[0]), str.strip(r[1])))
+                        # pprint.pprint( list(rows) )
+                        # print(list(rows))
+                        RESULT.insert(n-4, result)
+                        print('結果:',result)
+
+                        #カラム名取得
+                        columns = []
+                        for column in exe.description:
+                            columns.append(column[0])
+                        COLUMN.insert(n-4, columns)
+                        print('カラム:', columns)
+
+                        def sub_window(rows, columns):
+                            # print('ボタン押下columns',columns)
+                            # print('ボタン押下result',rows)
+                            def save_csv():
+                                dtime =  datetime.date.today().strftime('%Y%m%d')
+                                filename = dtime + '_' + os.path.splitext(os.path.basename(file))[0] + '.csv'
+                                ftype = [('CSV File', '.csv')]
+                                fname = filedialog.asksaveasfilename(initialfile=filename, filetypes=ftype)
+                                if fname:
+                                    with open(fname, 'w', newline='') as f:
+                                        data = []
+                                        data.append(columns)
+                                        for row in rows:
+                                            data.append(row)
+                                        writer = csv.writer(f)
+                                        writer.writerows(data)
+                                    print('保存しました')
+                                    messagebox.showinfo('Complete', '保存しました')
+                                else:
+                                    print('キャンセルしました')
+
+                            sub_win = tk.Toplevel()
+                            sub_win.title('Result')
+                            ww = sub_win.winfo_screenwidth()
+                            wh = sub_win.winfo_screenheight()
+                            style = ttk.Style()
+                            style.configure('Treeview.Heading', font = self.font, foreground=self.fgColor, background=self.bgColor, relief=tk.RAISED)
+                            style.configure('Treeview', font = self.font, rowheight=30, foreground=self.fgColor, background=self.bgColor,fieldbackground=self.bgColor, relief=tk.FLAT)
+                            sub_win.configure(bg=self.bgColor)
+
+                            # データ件数が30件以上の場合、スクロールバーを表示し30件の縦幅にする
+                            if len(rows) >= 30:
+                                rowInt = 30
+                                scrollbar = tk.Scrollbar(sub_win, orient=tk.VERTICAL)
+                                scrollbar.set(0.2,0.3)
+                                # scrollbar.grid(row=0, column=2, sticky=tk.N+tk.S)
+                                scrollbar.place(relheight=1.0,relwidth=0.02,relx=0.98,rely=0.0)
+                                # tree = ttk.Treeview(sub_win, columns=columns, height=30, yscrollcommand=scrollbar.set)
+                                tree = ttk.Treeview(sub_win, columns=columns, height=rowInt, yscrollcommand=scrollbar.set)
+                                scrollbar.config(command=tree.yview)
+                            else:
+                                rowInt = len(rows)
+                                tree = ttk.Treeview(sub_win, columns=columns, height=rowInt)
+
+                            # カラム数が10件以上の場合、スクロールバーを表示し10列の幅にする
+                            if len(columns) >= 10:
+                                xscrollbar = tk.Scrollbar(sub_win, orient=tk.HORIZONTAL)
+                                # xscrollbar.grid(row=1, column=0, columnspan=2, sticky=tk.E+tk.W)
+                                xscrollbar.place(relheight=0.07, relwidth=1.0, relx=0.0, rely=0.83)
+                                xscrollbar.config(command=tree.xview)
+                                tree.configure(xscrollcommand=xscrollbar.set)
+
+                            # タグ定義(色設定用)
+                            tree.tag_configure('color', background=self.bgColor , foreground=self.fgColor)
+                            tree.tag_configure('color2', background=self.grayColor , foreground=self.fgColor)
+
+                            # カラム定義
+                            tree.column('#0',width=0, stretch='no')
+                            for c in columns:
+                                tree.column(c, anchor='center')
+                            tree.heading('#0',text='')
+                            for c in columns:
+                                tree.heading(c, text=c,anchor='center', command=lambda c=c: sortby(tree, c, 0))
+
+                            def sortby(tree, col, descending):
+                                l = [(tree.set(k, col), k) for k in tree.get_children('')]
+                                l.sort(reverse=descending)
+                                # アイテムの並び替え
+                                for index, (val, k) in enumerate(l):
+                                    tree.move(k, '', index)
+                                tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
+
+                            # レコードの追加
+                            for i in range(len(rows)):
+                                # 1列ごとにセルの背景色を変える
+                                if i % 2 == 0:
+                                    tree.insert('', 'end', values=rows[i], tags='color2')
+                                else:
+                                    tree.insert('', 'end', values=rows[i], tags='color')
+
+                            # tree.grid(row=0, column=0, columnspan=2, sticky='nsew')
+                            tree.place(relheight=1.0,relwidth=0.98,relx=0.0,rely=0.0)
+                            tree.columnconfigure(0, weight=1)
+                            tree.rowconfigure(0, weight=1)
+                            tree.grid_propagate(False)
+
+                            bt = tk.Button(sub_win, text='Close', command=sub_win.destroy, width=10, height=1\
+                                            , bg=self.grayColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
+                            # bt.grid(row=2, column=1, sticky='nsew')
+                            bt.place(relheight=0.10,relwidth=0.50,relx=0.5,rely=0.9)
+                            csvButt = tk.Button(sub_win, text='Save as CSV', command=save_csv, width=10, height=1\
+                                            , bg=self.bgColor, fg=self.fgColor, activebackground=self.grayColor, relief='raised', font=self.font)
+                            # csvButt.grid(row=2, column=0, sticky='nsew')
+                            csvButt.place(relheight=0.10,relwidth=0.50,relx=0.0,rely=0.9)
+
+                            sub_win.update_idletasks()
+                            # lw = sub_win.winfo_width()
+                            # lh = sub_win.winfo_height()
+                            lw = 1500
+                            lh = 400
+                            sub_win.geometry(str(lw)+'x'+str(lh)+"+"+str(int(ww/2-lw/2))+"+"+str(int(wh/2.5-lh/2.5))) # 画面中央に表示
+
+                        def callback(event):
+                            d = str(event.widget['text'])[-1:]
+                            print('\n------------テーブル表示ボタン押下------------', event.widget['text'])
+                            sub_window(RESULT[int(d)], COLUMN[int(d)])
+                        def enter_fg(event):
+                            event.widget['fg'] = self.jsonOnePoint
+                        def leave_fg(event):
+                            event.widget['fg'] = self.fgColor
+                        print('処理中行i', n)
+                        variableA = []
+                        variableA.insert(n, tk.Label(self.master, text = 'Show Results     ' + ' ' + str(n-4), padx=8, width=10, anchor='w'\
+                                                        , font=self.fontSub, bg=self.grayColor,fg=self.fgColor, relief='ridge'))
+                        variableA[0].grid(row = i, column = 3,  sticky="w")
+                        variableA[0].bind("<Button-1>", callback)
+                        variableA[0].bind("<Enter>", enter_fg) # マウスカーソルが重なったら
+                        variableA[0].bind("<Leave>", leave_fg) # マウスカーソルが離れたら
+
+                    if len(selectCheck) == 0:
+                        tk.Label(self.master, text = 'Success', width=10, anchor='w', font=self.fontSub, bg=self.bgColor,fg=self.fgColor)\
+                        .grid(row = i, column = 3, padx=5, sticky="W")
                     i += 1
+                    cursor.close()
                 except Exception as e:
                     print(e)
                     errorCount += 1
+                    RESULT.insert(i-4, ['No Data'])
+                    COLUMN.insert(i-4, ['No Data'])
+                    nonSlct += 1
                     # if ''.join(e.args).startswith('No results.  Previous SQL was not a query.'):#TASK:SELECT対応
                     #     tk.Label(self.master, text = 'Success', width=10, anchor='w', font=self.fontSub, bg=self.bgColor,fg=self.fgColor).grid(row = i, column = 3,  sticky="W")#9fa05e
                     #     i += 1
