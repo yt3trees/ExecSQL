@@ -75,6 +75,7 @@ class Application(tk.Frame):
         jsonUser = jsonValues.get('User')
         jsonPassword = jsonValues.get('Password')
         self.jsonOnePoint = jsonValues.get('ColorOnePoint')
+        self.jsonDriver = jsonValues.get('Driver')
 
         self.master.configure(bg=self.bgColor) # 背景色
 
@@ -217,7 +218,7 @@ class Application(tk.Frame):
             elif self.winauth.get() == False:
                 trusted_connection = 'no'
 
-            connect= pyodbc.connect('DRIVER={SQL Server}'+#or ODBC Driver 17 for SQL Server
+            connect= pyodbc.connect('DRIVER={'+ self.jsonDriver +'}'+#SQL Server or ODBC Driver 17 for SQL Server
                                     ';SERVER=' + server +
                                     ';DATABASE=' + database +
                                     ';uid=' + user +
@@ -316,7 +317,8 @@ class Application(tk.Frame):
             'User': jUser,
             'Password': jPassword,
             'ColorOnePoint': self.load_json().get('ColorOnePoint'),
-            'Theme': self.load_json().get('Theme')
+            'Theme': self.load_json().get('Theme'),
+            'Driver': self.load_json().get('Driver')
         }
         # jsonファイルに保存
         try:
@@ -356,7 +358,7 @@ class Application(tk.Frame):
                 elif self.winauth.get() == False:
                     trusted_connection = 'no'
 
-                connect= pyodbc.connect('DRIVER={SQL Server}'+
+                connect= pyodbc.connect('DRIVER={+' + self.jsonDriver + '}'+
                                         ';SERVER=' + server +
                                         ';DATABASE=' + 'master' + # masterにはログインできる前提
                                         ';uid=' + user +

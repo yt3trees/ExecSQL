@@ -3,5 +3,6 @@
   "User": "test",
   "Password": "1234",
   "ColorOnePoint": "#5EA15F",
-  "Theme": "dark"
+  "Theme": "dark",
+  "Driver": "SQL Server"
 }
