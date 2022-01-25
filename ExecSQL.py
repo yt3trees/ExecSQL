@@ -19,7 +19,9 @@ import re
 import textwrap
 import csv
 import datetime
-#TODO:F1でバージョン表示
+
+VERSION = 'v1.0.0'
+
 # 高DPI対応
 import ctypes
 try:
@@ -198,6 +200,8 @@ class Application(tk.Frame):
         # ショートカット定義
         self.master.bind("<Escape>", lambda e: master.destroy()) # 閉じる
         self.master.bind("<F5>", lambda e: self.push_exec_query()) # 実行
+        # F1でバージョン
+        self.master.bind("<F1>", lambda e: messagebox.showinfo('Version', 'Version: ' + VERSION))
 
         self.master.update_idletasks()
         lw = self.master.winfo_width()
@@ -261,25 +265,32 @@ class Application(tk.Frame):
                         query = b.decode(encode['encoding'])
 
                     # クエリからGOコマンドを削除する
-                    findGo = re.compile(r'(?!\/\*.*\n*).*^\s*GO\s*$.*(?!\n*.*?\*\/)' # GOのみの行を検索(/* */で囲まれている行は除く)
+                    findGo = re.compile(r'^\s*GO\s*$' # GOのみの行を検索
                                         , re.IGNORECASE # 大文字・小文字を区別しない
                                         | re.MULTILINE) # 複数行にマッチさせる
-                    goCheck = [go for go in findGo.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    findComments = re.compile(r'/\*.*?\*/', flags=re.DOTALL) # /* */で囲まれたコメントを検索
+                    goCheck = [comment for comment in findComments.findall(query) if findGo.search(comment)] # GOコマンドを含むコメントを検索
+                    # /* */で囲まれたGOをコメントアウト
+                    for comment in goCheck:
+                        query = query.replace(comment, re.sub(findGo, '-- GO', comment))
+                    print('GoCheck:',goCheck)
                     print ('GOコマンドを', len(goCheck), '個見つけました')
-                    # query = re.sub(findGo, '-- GO', query) # GOをコメントアウト
-                    query = re.split(findGo, query) # GOでクエリを分割
+                    # GOコマンドを分割してリストに格納
+                    query = [part for part in findGo.split(query) if part]
 
-                    findSelect = re.compile(r'(?!\/\*.*\n*).*^\s*SELECT\s*.*(?!\n*.*?\*\/)' # SELECTで始まる行を検索(/* */で囲まれている行は除く)
+                    findSelect = re.compile(r'(?!/\*.*\n*).*^\s*SELECT\s*.*(?!\n*.*?\*/)' # SELECTで始まる行を検索(/* */で囲まれている行は除く)
                                         , re.IGNORECASE # 大文字・小文字を区別しない
                                         | re.MULTILINE) # 複数行にマッチさせる
-                    # findCreate = re.compile(r'(?!\/\*.*\n*).*^\s*CREATE\s*.*(?!\n*.*?\*\/)' # CREATEで始まる行を検索(/* */で囲まれている行は除く)
-                    #                     , re.IGNORECASE # 大文字・小文字を区別しない
-                    #                     | re.MULTILINE) # 複数行にマッチさせる
+                    findCreate = re.compile(r'(?!/\*.*\n*).*^\s*CREATE\s*.*(?!\n*.*?\*/)' # CREATEで始まる行を検索(/* */で囲まれている行は除く)
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
                     selectCheck = []
+                    createCheck = []
                     for q in query:
                         selectCheck += [slct for slct in findSelect.findall(q)] # 正規表現にマッチする文字列をリストに格納
-                    # if len(findCreate) > 0:
-                    #     selectCheck = []
+                        createCheck += [create for create in findCreate.findall(q)] # 正規表現にマッチする文字列をリストに格納
+                    if len(createCheck) > 0:
+                        selectCheck = []
                     print ('SELECTコマンドを', len(selectCheck), '個見つけました')
 
                     # # クエリからUSEコマンドを削除する ※pyodbcではUSEコマンドを含めるとSELECTできないため
@@ -311,12 +322,12 @@ class Application(tk.Frame):
                     #     #     us = '-- ' + us
                     #     #     query = re.sub(findUse, us, query) # USEをコメントアウト
 
-                    #     print ('\n-----After replacement query FROM-----', sep = '')
-                    #     print('分割数:', len(query))
-                    #     for q in query:
-                    #         print('↓-----↓')
-                    #         print(q)
-                    #     print ('\n-----After replacement query TO-----\n', sep = '')
+                    print ('\n-----After replacement query FROM-----', sep = '')
+                    print('分割数:', len(query))
+                    for q in query:
+                        print('↓-----↓')
+                        print(q)
+                    print ('\n-----After replacement query TO-----\n', sep = '')
 
                         # query = file.read()
                         # query= 'SELECT * FROM testTable'
@@ -349,7 +360,7 @@ class Application(tk.Frame):
                                 if r[d] is None:
                                     txt.append('')
                                 else:
-                                    txt.append(str.strip(r[d]))
+                                    txt.append(str.strip(str(r[d])))
                             result.append(txt)
                             # result.append((str.strip(r[0]), str.strip(r[1])))
                         # pprint.pprint( list(rows) )
@@ -408,13 +419,11 @@ class Application(tk.Frame):
                                 rowInt = len(rows)
                                 tree = ttk.Treeview(sub_win, columns=columns, height=rowInt)
 
-                            # カラム数が10件以上の場合、スクロールバーを表示し10列の幅にする
-                            if len(columns) >= 10:
-                                xscrollbar = tk.Scrollbar(sub_win, orient=tk.HORIZONTAL)
-                                # xscrollbar.grid(row=1, column=0, columnspan=2, sticky=tk.E+tk.W)
-                                xscrollbar.place(relheight=0.07, relwidth=1.0, relx=0.0, rely=0.83)
-                                xscrollbar.config(command=tree.xview)
-                                tree.configure(xscrollcommand=xscrollbar.set)
+                            # 横スクロールバーは列数に関係なく表示
+                            xscrollbar = tk.Scrollbar(sub_win, orient=tk.HORIZONTAL)
+                            xscrollbar.place(relheight=0.07, relwidth=1.0, relx=0.0, rely=0.83)
+                            xscrollbar.config(command=tree.xview)
+                            tree.configure(xscrollcommand=xscrollbar.set)
 
                             # タグ定義(色設定用)
                             tree.tag_configure('color', background=self.bgColor , foreground=self.fgColor)
