@@ -166,19 +166,24 @@ class Application(tk.Frame):
         i:int = 0
         var = []
         variable = []
+        fileTmp = []
         for file in ARGV:
-            var.insert(i,file)
-            # if len(file) > 50:
-            #     txtFile = '...\\' + os.path.basename(os.path.dirname(file)) + os.path.basename(file)
-            # else:
-            #     txtFile = file
-            variable.insert(i,tk.Label(self.master, text = file, width=51, anchor='w', font=self.fontSub, bg=self.bgColor, fg=self.fgColor))
+            if len(file) > 50:
+                fileAfter = '...\\' + os.path.basename(os.path.dirname(file)) + os.path.basename(file)
+            else:
+                fileAfter = file
+            fileAfter = str(i + 1) + ': ' + fileAfter
+            fileTmp.append(file)
+            var.insert(i, file)
+            variable.insert(i,tk.Label(self.master, text = fileAfter, width=51, anchor='w', font=self.fontSub, bg=self.bgColor, fg=self.fgColor))
             variable[i].grid(row = i+4, column = 0, columnspan=3, sticky="W", padx=5)
             i = i + 1
         def callback(event):
-            hWnd = win32gui.FindWindow(None,os.path.basename(os.path.dirname(event.widget['text'])))
+            idx = event.widget['text'][0:1]
+            print(fileTmp[int(idx)-1])
+            hWnd = win32gui.FindWindow(None,os.path.basename(os.path.dirname(fileTmp[int(idx)-1])))
             title = win32gui.GetWindowText(hWnd)
-            if title == os.path.basename(os.path.dirname(event.widget['text'])): # 既にウィンドウが存在している場合はそのウィンドウをアクティブにする
+            if title == os.path.basename(os.path.dirname(fileTmp[int(idx)-1])): # 既にウィンドウが存在している場合はそのウィンドウをアクティブにする
                 if win32gui.IsIconic(hWnd):
                     win32gui.ShowWindow(hWnd,1)
                 ctypes.windll.user32.SetForegroundWindow(hWnd)
