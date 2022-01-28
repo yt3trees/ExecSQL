@@ -169,7 +169,7 @@ class Application(tk.Frame):
         fileTmp = []
         for file in ARGV:
             if len(file) > 50:
-                fileAfter = '...\\' + os.path.basename(os.path.dirname(file)) + os.path.basename(file)
+                fileAfter = '...\\' + os.path.basename(os.path.dirname(file)) + '\\' + os.path.basename(file)
             else:
                 fileAfter = file
             fileAfter = str(i + 1) + ': ' + fileAfter
@@ -269,34 +269,57 @@ class Application(tk.Frame):
                     else:
                         query = b.decode(encode['encoding'])
 
+                    # /* */で囲まれたコメントを検索
+                    findComments = re.compile(r'/\*.*?\*/', flags=re.DOTALL)
+
+                    findSelect = re.compile(r'^\s*SELECT\s*?' # SELECTのみの行を検索
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    selectCheck = [comment for comment in findComments.findall(query) if findSelect.search(comment)] # SELECTを含むコメントを検索
+                    # /* */で囲まれたSELECTをコメントアウト
+                    for comment in selectCheck:
+                        query = query.replace(comment, re.sub(findSelect, '-- SELECT', comment))
+                    selectCheck = []
+                    selectCheck += [slct for slct in findSelect.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    print ('SELECTを', len(selectCheck), '個見つけました')
+
+                    findCreate = re.compile(r'^\s*CREATE\s*?' # CREATEのみの行を検索
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    createCheck = [comment for comment in findComments.findall(query) if findCreate.search(comment)] # CREATEを含むコメントを検索
+                    # /* */で囲まれたCREATEをコメントアウト
+                    for comment in createCheck:
+                        query = query.replace(comment, re.sub(findCreate, '-- CREATE', comment))
+                    createCheck = []
+                    createCheck += [crt for crt in findCreate.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    print ('CREATEを', len(createCheck), '個見つけました')
+
+                    findUpdate = re.compile(r'^\s*UPDATE\s*?' # UPDATEのみの行を検索
+                                        , re.IGNORECASE # 大文字・小文字を区別しない
+                                        | re.MULTILINE) # 複数行にマッチさせる
+                    updateCheck = [comment for comment in findComments.findall(query) if findUpdate.search(comment)] # UPDATEを含むコメントを検索
+                    # /* */で囲まれたUPDATEをコメントアウト
+                    for comment in updateCheck:
+                        query = query.replace(comment, re.sub(findUpdate, '-- UPDATE', comment))
+                    updateCheck = []
+                    updateCheck += [updt for updt in findUpdate.findall(query)] # 正規表現にマッチする文字列をリストに格納
+                    print ('UPDATEを', len(updateCheck), '個見つけました')
+
                     # クエリからGOコマンドを削除する
                     findGo = re.compile(r'^\s*GO\s*$' # GOのみの行を検索
                                         , re.IGNORECASE # 大文字・小文字を区別しない
                                         | re.MULTILINE) # 複数行にマッチさせる
-                    findComments = re.compile(r'/\*.*?\*/', flags=re.DOTALL) # /* */で囲まれたコメントを検索
                     goCheck = [comment for comment in findComments.findall(query) if findGo.search(comment)] # GOコマンドを含むコメントを検索
                     # /* */で囲まれたGOをコメントアウト
                     for comment in goCheck:
                         query = query.replace(comment, re.sub(findGo, '-- GO', comment))
-                    print('GoCheck:',goCheck)
                     print ('GOコマンドを', len(goCheck), '個見つけました')
                     # GOコマンドを分割してリストに格納
                     query = [part for part in findGo.split(query) if part]
 
-                    findSelect = re.compile(r'(?!/\*.*\n*).*^\s*SELECT\s*.*(?!\n*.*?\*/)' # SELECTで始まる行を検索(/* */で囲まれている行は除く)
-                                        , re.IGNORECASE # 大文字・小文字を区別しない
-                                        | re.MULTILINE) # 複数行にマッチさせる
-                    findCreate = re.compile(r'(?!/\*.*\n*).*^\s*CREATE\s*.*(?!\n*.*?\*/)' # CREATEで始まる行を検索(/* */で囲まれている行は除く)
-                                        , re.IGNORECASE # 大文字・小文字を区別しない
-                                        | re.MULTILINE) # 複数行にマッチさせる
-                    selectCheck = []
-                    createCheck = []
-                    for q in query:
-                        selectCheck += [slct for slct in findSelect.findall(q)] # 正規表現にマッチする文字列をリストに格納
-                        createCheck += [create for create in findCreate.findall(q)] # 正規表現にマッチする文字列をリストに格納
-                    if len(createCheck) > 0:
+                    # SELECT以外のクエリが含まれる場合はSELECT結果を表示しない
+                    if len(createCheck) > 0 or len(updateCheck) > 0:
                         selectCheck = []
-                    print ('SELECTコマンドを', len(selectCheck), '個見つけました')
 
                     # # クエリからUSEコマンドを削除する ※pyodbcではUSEコマンドを含めるとSELECTできないため
                     # findUse = re.compile(r'(?!\/\*.*\n*).*^\s*USE\s*.*(?!\n*.*?\*\/)' # USEで始まる行を検索(/* */で囲まれている行は除く)
