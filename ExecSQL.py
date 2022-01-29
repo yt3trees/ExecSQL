@@ -10,7 +10,6 @@ from tkinter import font
 from tkinter import messagebox
 from tkinter import filedialog
 import json
-import pprint
 import subprocess
 import win32gui # pip install pywin32
 import ctypes
@@ -531,7 +530,6 @@ class Application(tk.Frame):
 
                     i += 1
                     cursor.close()
-                    self.progress_bar("stop") # プログレスバー終了
                 except Exception as e:
                     print(e)
                     errorCount += 1
@@ -547,9 +545,9 @@ class Application(tk.Frame):
                     res = ('\n'.join(res))
                     tk.Label(self.master, text = res, anchor='w', justify='left', font=self.fontSub, bg=self.bgColor,fg='#a05e5e').grid(row = i, column = 3,  sticky="W")
                     i += 1
-                    self.progress_bar("stop") # プログレスバー終了
 
             connect.close()
+            self.progress_bar("stop") # プログレスバー終了
 
             # サーバコンボボックスの履歴制御(5件まで)
             if (self.entServer.get() in self.jsonServer) == False: # サーバ履歴に同じ値が無ければ追加
@@ -571,6 +569,7 @@ class Application(tk.Frame):
 
         except Exception as e:
             print(e)
+            self.progress_bar("stop") # プログレスバー終了
             messagebox.showerror('Error!', e)
 
     def progress_bar(self, param):
@@ -582,6 +581,7 @@ class Application(tk.Frame):
         '''
         if param == "start":
             self.winbar = tk.Toplevel()
+            self.winbar.attributes('-alpha', 0.0)
 
             style = ttk.Style()
             style.configure("Horizontal.TProgressbar", troughcolor=self.grayColor, background=self.bgColor)
@@ -605,6 +605,7 @@ class Application(tk.Frame):
             lw = self.winbar.winfo_width()
             lh = self.winbar.winfo_height()
             self.winbar.geometry("+"+str(int(ww/2-lw/2))+"+"+str(int(wh/2.4-lh/2.4)))
+            self.winbar.attributes('-alpha', 1.0)
             return self.winbar.pb
 
         elif param == "stop":
