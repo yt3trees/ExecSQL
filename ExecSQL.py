@@ -44,7 +44,7 @@ ARGV = sys.argv
 # ARGV.append('C:\\work\\dev\\python\\テスト\\test2.sql') #デバッグ用
 # ARGV.append('C:\\work\\dev\\python\\テスト\\testViewDelCreate.sql') #デバッグ用
 if len(ARGV) <= 1:
-    messagebox.showerror('Error!', 'ファイルが指定されていません')
+    messagebox.showerror('Error!', 'ファイルが指定されていません\n.sqlファイルを右クリックして「送る」から実行してください')
     sys.exit() # 引数がない場合は終了
 ARGV.pop(0) # sys.argv[0](自分自身)を配列から除外
 print('ARGV:', ARGV)
