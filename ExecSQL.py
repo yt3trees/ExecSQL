@@ -19,6 +19,7 @@ import re
 import textwrap
 import csv
 import datetime
+import threading
 
 VERSION = 'v1.0.0'
 
@@ -134,10 +135,10 @@ class Application(tk.Frame):
 
         # ボタン定義
         buttExec = tk.Button(self.master, text="Run", width=10, height=2, bg=self.bgColor, fg=self.jsonOnePoint, activebackground=self.grayColor, relief='raised', font=self.font)#5EA15F
-        buttExec.bind("<Button-1>", lambda e: self.after(1, self.push_exec_query))
+        buttExec.bind("<ButtonRelease-1>", lambda e: self.push_exec_query())
         buttExec.grid(row=0, column=3, rowspan=2, sticky='w')
         buttClose = tk.Button(self.master, text="Close", width=10, height=2, font=self.font, bg=self.grayColor, fg=self.fgColor, relief='raised')
-        buttClose.bind("<Button-1>", lambda e: master.destroy())
+        buttClose.bind("<ButtonRelease-1>", lambda e: master.destroy())
         buttClose.grid(row=2, column=3, rowspan=2, sticky='w')
 
         # チェックボックス定義
@@ -197,7 +198,7 @@ class Application(tk.Frame):
             event.widget['fg'] = self.fgColor
         s:int = 0
         for r in ARGV:
-            variable[s].bind("<Button-1>", callback) # クリックでファイルを開く
+            variable[s].bind("<ButtonRelease-1>", callback) # クリックでファイルを開く
             variable[s].bind("<Enter>", enter_fg) # マウスカーソルが重なったら
             variable[s].bind("<Leave>", leave_fg) # マウスカーソルが離れたら
             s += 1
@@ -215,9 +216,9 @@ class Application(tk.Frame):
     def push_exec_query(self):
         '''
         exec_queryを実行する
-        after関数を使用することでボタンが押しっぱなしになるのを防ぐ
         '''
-        self.exec_query()
+        thread = threading.Thread(target=self.exec_query)
+        thread.start()
 
     def exec_query(self):
         '''
@@ -230,6 +231,7 @@ class Application(tk.Frame):
                 messagebox.showerror('Error!', 'ファイルが見つかりません')
                 return
         try:
+            self.progress_bar("start")
             server = self.entServer.get()
             database = self.entDatabase.get()
             user = self.entUser.get()
@@ -523,12 +525,13 @@ class Application(tk.Frame):
                         variableA.insert(n, tk.Label(self.master, text = 'Show Results     ' + ' ' + str(n-4), padx=8, width=10, anchor='w'\
                                                         , font=self.fontSub, bg=self.grayColor,fg=self.fgColor, relief='ridge'))
                         variableA[0].grid(row = i, column = 3,  sticky="w")
-                        variableA[0].bind("<Button-1>", callback)
+                        variableA[0].bind("<ButtonRelease-1>", callback)
                         variableA[0].bind("<Enter>", enter_fg) # マウスカーソルが重なったら
                         variableA[0].bind("<Leave>", leave_fg) # マウスカーソルが離れたら
 
                     i += 1
                     cursor.close()
+                    self.progress_bar("stop") # プログレスバー終了
                 except Exception as e:
                     print(e)
                     errorCount += 1
@@ -544,6 +547,7 @@ class Application(tk.Frame):
                     res = ('\n'.join(res))
                     tk.Label(self.master, text = res, anchor='w', justify='left', font=self.fontSub, bg=self.bgColor,fg='#a05e5e').grid(row = i, column = 3,  sticky="W")
                     i += 1
+                    self.progress_bar("stop") # プログレスバー終了
 
             connect.close()
 
@@ -568,6 +572,43 @@ class Application(tk.Frame):
         except Exception as e:
             print(e)
             messagebox.showerror('Error!', e)
+
+    def progress_bar(self, param):
+        '''
+        プログレスバーの表示
+
+        Args:
+            param (str): start or stop
+        '''
+        if param == "start":
+            self.winbar = tk.Toplevel()
+
+            style = ttk.Style()
+            style.configure("Horizontal.TProgressbar", troughcolor=self.grayColor, background=self.bgColor)
+
+            ww = self.winbar.winfo_screenwidth()
+            wh = self.winbar.winfo_screenheight()
+            self.winbar.configure(bg=self.bgColor) # 背景色
+            self.winbar.title("in progress")
+            self.winbar.attributes("-toolwindow", True)
+            self.winbar.overrideredirect(1)
+            self.winbar.grab_set()
+            self.winbar.focus_set()
+            self.winbar.Lbl = tk.Label(self.winbar, text = "in progress...", bg=self.bgColor, fg=self.fgColor, font=self.fontSub)
+            self.winbar.Lbl.pack(pady=10)
+            self.winbar.pb = ttk.Progressbar(self.winbar, mode="indeterminate",length="180" \
+                                          , style="Horizontal.TProgressbar", orient="horizontal")
+            self.winbar.pb.start()
+            self.winbar.pb.pack(padx = 10, pady = 10)
+
+            self.winbar.update_idletasks()
+            lw = self.winbar.winfo_width()
+            lh = self.winbar.winfo_height()
+            self.winbar.geometry("+"+str(int(ww/2-lw/2))+"+"+str(int(wh/2.4-lh/2.4)))
+            return self.winbar.pb
+
+        elif param == "stop":
+            self.winbar.destroy()
 
     def save_json(self):
         '''
@@ -617,6 +658,9 @@ class Application(tk.Frame):
     def get_database(self, param):
         '''
         サーバ指定でデータベースを取得
+
+        Args:
+            param (str): update
         '''
         if param == 'update':
             try:
