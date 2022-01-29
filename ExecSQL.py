@@ -188,7 +188,7 @@ class Application(tk.Frame):
                     win32gui.ShowWindow(hWnd,1)
                 ctypes.windll.user32.SetForegroundWindow(hWnd)
             else:
-                subprocess.Popen(['explorer',os.path.dirname(event.widget['text'])]) # ウィンドウが存在しない場合は新規ウィンドウを開く
+                subprocess.Popen(['explorer',os.path.dirname(fileTmp[int(idx)-1])]) # ウィンドウが存在しない場合は新規ウィンドウを開く
 
         # ファイルリストラベルのbind定義
         def enter_fg(event):
@@ -205,7 +205,6 @@ class Application(tk.Frame):
         # ショートカット定義
         self.master.bind("<Escape>", lambda e: master.destroy()) # 閉じる
         self.master.bind("<F5>", lambda e: self.push_exec_query()) # 実行
-        # F1でバージョン
         self.master.bind("<F1>", lambda e: messagebox.showinfo('Version', 'Version: ' + VERSION))
 
         self.master.update_idletasks()
@@ -428,10 +427,14 @@ class Application(tk.Frame):
                             sub_win.title('Result')
                             ww = sub_win.winfo_screenwidth()
                             wh = sub_win.winfo_screenheight()
+                            sub_win.grab_set()
+                            sub_win.focus_set()
                             style = ttk.Style()
                             style.configure('Treeview.Heading', font = self.font, foreground=self.fgColor, background=self.bgColor, relief=tk.RAISED)
                             style.configure('Treeview', font = self.font, rowheight=30, foreground=self.fgColor, background=self.bgColor,fieldbackground=self.bgColor, relief=tk.FLAT)
                             sub_win.configure(bg=self.bgColor)
+                            # ショートカット定義
+                            sub_win.bind("<Escape>", lambda e: sub_win.destroy()) # 閉じる
 
                             # データ件数が30件以上の場合、スクロールバーを表示し30件の縦幅にする
                             if len(rows) >= 30:
