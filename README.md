@@ -1,5 +1,6 @@
 # ExecSQL
 ![widget.png](./image/widget.png)
+![ExecSQL](https://user-images.githubusercontent.com/57471763/151695862-161cad0a-4afb-41cb-97d5-d5286c6eb0c3.gif)
 ## jp
 ExecSQLはsqlファイルをより少ないプロセスで実行することができるツールです。
 
