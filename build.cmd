@@ -1,6 +1,6 @@
 rem upx --upx-dir C:\upx-3.96-win64
 rem --icon=icon/copytool.ico
-pyinstaller ExecSQL.py --name ExecSQL --noconsole
+pyinstaller ExecSQL.py --name ExecSQL --noconsole --icon=icon/ExecSQL_LightIcon.ico
 
 if exist .\app\ExecSQL\ExecSQL.exe (
     echo è„èëÇ´ÇµÇ‹Ç∑ÅB

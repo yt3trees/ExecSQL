@@ -65,6 +65,7 @@ class Application(tk.Frame):
         ww = self.master.winfo_screenwidth()
         wh = self.master.winfo_screenheight()
         self.master.title('ExecSQL')
+        self.master.iconbitmap('./icon/ExecSQL_LightIcon.ico')
 
         # jsonファイルの読み込み
         jsonValues = self.load_json()
@@ -428,6 +429,7 @@ class Application(tk.Frame):
                             sub_win.title('Result')
                             ww = sub_win.winfo_screenwidth()
                             wh = sub_win.winfo_screenheight()
+                            sub_win.iconbitmap('./icon/ExecSQL_LightIcon.ico')
                             # sub_win.grab_set()
                             sub_win.focus_set()
                             style = ttk.Style()
