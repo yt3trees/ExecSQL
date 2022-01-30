@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "ExecSQL"
-#define MyAppVersion "0.9.9"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "yt3trees"
 #define MyAppURL "https://github.com/yt3trees/ExecSQL/"
 #define MyAppExeName "ExecSQL.exe"
