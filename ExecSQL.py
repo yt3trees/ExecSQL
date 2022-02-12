@@ -20,7 +20,7 @@ import csv
 import datetime
 import threading
 
-VERSION = 'v1.0.0'
+VERSION = 'v1.0.1'
 
 # 高DPI対応
 import ctypes
@@ -247,7 +247,7 @@ class Application(tk.Frame):
                                     ';uid=' + user +
                                     ';pwd=' + password +
                                     ';Trusted_Connection=' + trusted_connection) # Windows認証
-            connect.setencoding('shift-jis')
+            connect.setencoding('cp932')
 
             # ファイルごとにSQLを実行する
             i:int = 4
@@ -266,7 +266,7 @@ class Application(tk.Frame):
                         b = f.read()
                     encode = chardet.detect(b)
                     if encode['encoding'] == 'Windows-1252':
-                        query = b.decode('shift-jis')
+                        query = b.decode('cp932')
                     else:
                         query = b.decode(encode['encoding'])
 
