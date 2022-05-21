@@ -39,10 +39,6 @@ SQLServerに対応しています。
 4. `Run`ボタンを押下してSQLを実行
 5. (SELECT句の場合)`Show Results`を押下することで抽出結果を表示
 
-## Installation
-
-https://github.com/yt3trees/ExecSQL/releases
-
 ## Author
 
 [@yt3trees](https://twitter.com/yt3trees)
