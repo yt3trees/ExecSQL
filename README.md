@@ -26,11 +26,6 @@ SQLServerに対応しています。
 - 実行した.sqlがSELECT句の場合は抽出結果を表示
 - SELECT結果をCSV出力
 
-## Requirement
-
-- Python3
-- SQLServer
-
 ## Usage
 
 1. .sqlファイルを選択して右クリック
